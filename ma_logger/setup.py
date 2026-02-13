@@ -48,7 +48,7 @@ def setup_logging(formatter=None, context_filter=None):
         - Idempotent: safe to call multiple times (only configures once)
     """
     root_logger = logging.getLogger()
-    if getattr(root_logger, '_ma_logger_configured', False):
+    if getattr(root_logger, "_ma_logger_configured", False):
         return
 
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -88,11 +88,10 @@ def setup_logging(formatter=None, context_filter=None):
     # propagate=False prevents duplicate output (once from py.warnings handlers,
     # once from propagation to root logger which has the same handlers).
     logging.captureWarnings(True)
-    warnings_logger = logging.getLogger('py.warnings')
+    warnings_logger = logging.getLogger("py.warnings")
     warnings_logger.propagate = False
     warnings_logger.addHandler(stdout_handler)
     if log_file:
         warnings_logger.addHandler(file_handler)
 
     root_logger._ma_logger_configured = True
-

@@ -80,9 +80,11 @@ class OTelJsonFormatter(logging.Formatter):
         if self.timestamp_format == "unix":
             timestamp = record.created
         else:  # iso (default)
-            timestamp = datetime.datetime.fromtimestamp(
-                record.created, tz=datetime.timezone.utc
-            ).isoformat().replace("+00:00", "Z")
+            timestamp = (
+                datetime.datetime.fromtimestamp(record.created, tz=datetime.timezone.utc)
+                .isoformat()
+                .replace("+00:00", "Z")
+            )
 
         # Build base log record
         log_record = {
@@ -102,23 +104,23 @@ class OTelJsonFormatter(logging.Formatter):
             log_record["log.origin.file.line"] = record.lineno
 
         # Add context IDs (if available from filter)
-        if hasattr(record, 'otel_ctx'):
+        if hasattr(record, "otel_ctx"):
             # Map the context fields to custom field names
             ctx = record.otel_ctx
-            if 'trace_id' in ctx:
-                log_record[self.trace_id_field] = ctx['trace_id']
-            if 'execution_id' in ctx:
-                log_record[self.execution_id_field] = ctx['execution_id']
-            if 'task_id' in ctx:
-                log_record[self.task_id_field] = ctx['task_id']
+            if "trace_id" in ctx:
+                log_record[self.trace_id_field] = ctx["trace_id"]
+            if "execution_id" in ctx:
+                log_record[self.execution_id_field] = ctx["execution_id"]
+            if "task_id" in ctx:
+                log_record[self.task_id_field] = ctx["task_id"]
 
             # Add any additional context fields
             for key, value in ctx.items():
-                if key not in ('trace_id', 'execution_id', 'task_id'):
+                if key not in ("trace_id", "execution_id", "task_id"):
                     log_record[key] = value
 
         # Add custom attributes
-        if hasattr(record, 'data'):
+        if hasattr(record, "data"):
             log_record["attributes"] = record.data
 
         # Add exception stack trace
@@ -126,4 +128,3 @@ class OTelJsonFormatter(logging.Formatter):
             log_record["exception.stacktrace"] = self.formatException(record.exc_info)
 
         return json.dumps(log_record, ensure_ascii=False)
-

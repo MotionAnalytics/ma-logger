@@ -79,7 +79,10 @@ class OTelContextFilter(logging.Filter):
 
         # Set default environment variable names
         self.trace_id_env_vars = trace_id_env_vars or ["TRACING_ID", "CORRELATION_ID"]
-        self.execution_id_env_vars = execution_id_env_vars or ["KESTRA_EXECUTION_ID", "EXECUTION_ID"]
+        self.execution_id_env_vars = execution_id_env_vars or [
+            "KESTRA_EXECUTION_ID",
+            "EXECUTION_ID",
+        ]
         self.task_id_env_vars = task_id_env_vars or ["KESTRA_TASK_ID", "TASK_ID"]
 
         # Additional context
@@ -121,4 +124,3 @@ class OTelContextFilter(logging.Filter):
                 record.otel_ctx[context_key] = value
 
         return True
-

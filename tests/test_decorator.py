@@ -175,7 +175,6 @@ class TestTraceFailure:
         assert parsed["attributes"]["params"] == {"x": 1, "y": 2}
 
 
-
 class TestTraceWithFile:
     """Test decorator output to file (with and without LOG_FILE_PATH)."""
 
@@ -189,9 +188,7 @@ class TestTraceWithFile:
 
         simple()
         root = logging.getLogger()
-        file_handlers = [
-            h for h in root.handlers if isinstance(h, logging.FileHandler)
-        ]
+        file_handlers = [h for h in root.handlers if isinstance(h, logging.FileHandler)]
         assert len(file_handlers) == 0
         # But stdout should still have the log
         parsed = json.loads(capsys.readouterr().out.strip())

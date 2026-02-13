@@ -12,12 +12,19 @@ from ma_logger.filters import OTelContextFilter
 @pytest.fixture
 def make_record():
     """Helper to create a bare log record."""
+
     def _make():
         logger = logging.getLogger("test.filter")
         return logger.makeRecord(
-            name="test.filter", level=logging.INFO,
-            fn="test.py", lno=1, msg="test", args=(), exc_info=None,
+            name="test.filter",
+            level=logging.INFO,
+            fn="test.py",
+            lno=1,
+            msg="test",
+            args=(),
+            exc_info=None,
         )
+
     return _make
 
 
@@ -39,9 +46,12 @@ class TestOTelContextFilterDefaults:
 
     def test_fallback_values_when_no_env(self, make_record, monkeypatch):
         for var in [
-            "TRACING_ID", "CORRELATION_ID",
-            "KESTRA_EXECUTION_ID", "EXECUTION_ID",
-            "KESTRA_TASK_ID", "TASK_ID",
+            "TRACING_ID",
+            "CORRELATION_ID",
+            "KESTRA_EXECUTION_ID",
+            "EXECUTION_ID",
+            "KESTRA_TASK_ID",
+            "TASK_ID",
         ]:
             monkeypatch.delenv(var, raising=False)
         f = OTelContextFilter()
@@ -131,9 +141,7 @@ class TestOTelContextFilterCustomConfig:
         assert record.otel_ctx["trace_id"] == "unknown"
 
     def test_additional_static_context(self, make_record):
-        f = OTelContextFilter(
-            additional_context={"environment": "prod", "region": "us-east-1"}
-        )
+        f = OTelContextFilter(additional_context={"environment": "prod", "region": "us-east-1"})
         record = make_record()
         f.filter(record)
         assert record.otel_ctx["environment"] == "prod"
@@ -141,19 +149,14 @@ class TestOTelContextFilterCustomConfig:
 
     def test_additional_env_context(self, make_record, monkeypatch):
         monkeypatch.setenv("POD_NAME", "my-pod-abc")
-        f = OTelContextFilter(
-            additional_env_context={"pod_name": "POD_NAME"}
-        )
+        f = OTelContextFilter(additional_env_context={"pod_name": "POD_NAME"})
         record = make_record()
         f.filter(record)
         assert record.otel_ctx["pod_name"] == "my-pod-abc"
 
     def test_additional_env_context_missing_var_not_added(self, make_record, monkeypatch):
         monkeypatch.delenv("POD_NAME", raising=False)
-        f = OTelContextFilter(
-            additional_env_context={"pod_name": "POD_NAME"}
-        )
+        f = OTelContextFilter(additional_env_context={"pod_name": "POD_NAME"})
         record = make_record()
         f.filter(record)
         assert "pod_name" not in record.otel_ctx
-
