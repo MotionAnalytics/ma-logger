@@ -187,9 +187,7 @@ class TestSetupLoggingFile:
         monkeypatch.delenv("LOG_FILE_PATH", raising=False)
         setup_logging()
         root = logging.getLogger()
-        file_handlers = [
-            h for h in root.handlers if isinstance(h, logging.FileHandler)
-        ]
+        file_handlers = [h for h in root.handlers if isinstance(h, logging.FileHandler)]
         assert len(file_handlers) == 0
 
     def test_file_and_stdout_both_receive_logs(self, capsys, monkeypatch):

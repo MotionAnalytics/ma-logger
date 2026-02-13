@@ -138,8 +138,6 @@ class TestCustomFilter:
         assert parsed["trace_id"] == "unknown"
 
 
-
-
 class TestCustomFormatterAndFilter:
     """Test setup_logging with both custom formatter and filter."""
 
@@ -191,9 +189,7 @@ class TestCustomConfigWithFile:
             log_path = f.name
         try:
             monkeypatch.setenv("LOG_FILE_PATH", log_path)
-            context_filter = OTelContextFilter(
-                additional_context={"env": "test"}
-            )
+            context_filter = OTelContextFilter(additional_context={"env": "test"})
             setup_logging(context_filter=context_filter)
             logging.getLogger("test").info("filter to file")
             for h in logging.getLogger().handlers:

@@ -14,6 +14,7 @@ from ma_logger.formatters import OTelJsonFormatter
 @pytest.fixture
 def make_record():
     """Helper to create a log record with optional extras."""
+
     def _make(
         msg="test message",
         level=logging.INFO,
@@ -33,6 +34,7 @@ def make_record():
             extra=extra,
         )
         return record
+
     return _make
 
 
@@ -168,6 +170,7 @@ class TestOTelJsonFormatterExceptions:
             raise ValueError("something broke")
         except ValueError:
             import sys
+
             record = make_record(exc_info=sys.exc_info())
         parsed = json.loads(formatter.format(record))
         assert "exception.stacktrace" in parsed
@@ -238,4 +241,3 @@ class TestOTelJsonFormatterCustomConfig:
         formatter = OTelJsonFormatter()
         parsed = json.loads(formatter.format(make_record()))
         assert "attributes" not in parsed
-
