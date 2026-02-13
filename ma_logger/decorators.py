@@ -67,6 +67,7 @@ def trace(_func=None, *, ignore_params=None):
         ignore_params: Optional list of parameter names to exclude from
             trace logging (e.g. secrets, large payloads).
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -89,6 +90,7 @@ def trace(_func=None, *, ignore_params=None):
                     exc_info=True,
                 )
                 raise
+
         return wrapper
 
     if _func is not None:
@@ -100,4 +102,3 @@ def trace(_func=None, *, ignore_params=None):
 
 # Backward-compatible alias (deprecated – use ``trace`` instead)
 monitor_task = trace
-

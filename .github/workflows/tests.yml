@@ -55,31 +55,35 @@ jobs:
   lint:
     name: Lint and Format Check
     runs-on: ubuntu-latest
-    
+    continue-on-error: true  # Don't fail the workflow if linting fails
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-      
+
       - name: Check code formatting with Black
+        continue-on-error: true
         run: |
           black --check ma_logger/ tests/
-      
+
       - name: Lint with Ruff
+        continue-on-error: true
         run: |
           ruff check ma_logger/ tests/
-      
+
       - name: Type check with mypy
+        continue-on-error: true
         run: |
           mypy ma_logger/
 

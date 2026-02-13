@@ -30,10 +30,9 @@ from .formatters import OTelJsonFormatter
 from .filters import OTelContextFilter
 
 __all__ = [
-    'setup_logging',
-    'trace',
-    'monitor_task',  # deprecated alias – use trace
-    'OTelJsonFormatter',
-    'OTelContextFilter',
+    "setup_logging",
+    "trace",
+    "monitor_task",  # deprecated alias – use trace
+    "OTelJsonFormatter",
+    "OTelContextFilter",
 ]
-
