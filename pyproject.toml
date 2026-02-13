@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: System :: Monitoring",
 ]
 
-# Dependencies - רק ספריית הסטנדרט, אין תלויות חיצוניות!
+# No external dependencies - standard library only
 dependencies = []
 
 [project.optional-dependencies]
@@ -63,7 +63,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=ma_logger --cov-report=term-missing"
+addopts = "-v"
 
 [tool.mypy]
 python_version = "3.8"
