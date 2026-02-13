@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: System :: Monitoring",
 ]
 
-# Dependencies - רק ספריית הסטנדרט, אין תלויות חיצוניות!
+# No external dependencies - standard library only
 dependencies = []
 
 [project.optional-dependencies]

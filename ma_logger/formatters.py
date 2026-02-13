@@ -76,11 +76,13 @@ class OTelJsonFormatter(logging.Formatter):
         self.include_line_number = include_line_number
 
     def format(self, record):
-        # Build timestamp
+        # Build timestamp from record.created (time.time() at record creation, always UTC)
         if self.timestamp_format == "unix":
-            timestamp = datetime.datetime.utcnow().timestamp()
+            timestamp = record.created
         else:  # iso (default)
-            timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+            timestamp = datetime.datetime.fromtimestamp(
+                record.created, tz=datetime.timezone.utc
+            ).isoformat().replace("+00:00", "Z")
 
         # Build base log record
         log_record = {

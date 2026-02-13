@@ -71,6 +71,12 @@ class TestSetupLoggingBasic:
         setup_logging()
         assert logging.getLogger().level == logging.WARNING
 
+    def test_invalid_log_level_falls_back_to_info(self, monkeypatch):
+        monkeypatch.setenv("LOG_LEVEL", "INVALID_LEVEL")
+        with pytest.warns(UserWarning, match="Invalid LOG_LEVEL"):
+            setup_logging()
+        assert logging.getLogger().level == logging.INFO
+
 
 class TestSetupLoggingStdout:
     """Test logging to stdout (default behavior)."""

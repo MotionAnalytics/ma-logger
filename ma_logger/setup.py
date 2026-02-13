@@ -13,8 +13,6 @@ from .filters import OTelContextFilter
 
 def setup_logging(formatter=None, context_filter=None):
     """
-    מגדירה את ה-Root Logger וקובעת לאן יוזרמו הלוגים
-
     Configures the root logger with JSON formatting and context injection.
 
     Default behavior (zero-config):
@@ -53,7 +51,15 @@ def setup_logging(formatter=None, context_filter=None):
     if getattr(root_logger, '_ma_logger_configured', False):
         return
 
-    root_logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    try:
+        root_logger.setLevel(log_level)
+    except ValueError:
+        root_logger.setLevel(logging.INFO)
+        warnings.warn(
+            f"Invalid LOG_LEVEL '{log_level}', falling back to INFO",
+            stacklevel=2,
+        )
 
     # Use provided formatter/filter or create defaults
     if formatter is None:
@@ -61,14 +67,14 @@ def setup_logging(formatter=None, context_filter=None):
     if context_filter is None:
         context_filter = OTelContextFilter()
 
-    # הגדרת הזרמים (Streams)
-    # 1. תמיד כותב ל-STDOUT (עבור קונטיינרים/אורקסטרטורים)
+    # Configure output streams
+    # 1. Always write to STDOUT (for containers/orchestrators)
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)
     stdout_handler.addFilter(context_filter)
     root_logger.addHandler(stdout_handler)
 
-    # 2. כתיבה לקובץ - מופעל רק אם קיים משתנה סביבה LOG_FILE_PATH
+    # 2. Write to file - only if LOG_FILE_PATH env var is set
     log_file = os.getenv("LOG_FILE_PATH")
     if log_file:
         file_handler = logging.FileHandler(log_file)
@@ -76,11 +82,14 @@ def setup_logging(formatter=None, context_filter=None):
         file_handler.addFilter(context_filter)
         root_logger.addHandler(file_handler)
 
-    # 3. הפניית warnings.warn() ללוגים
-    # זה גורם לכל warnings.warn() להיכתב דרך מערכת הלוגים
-    # ולהופיע באותו output (STDOUT/file) עם פורמט JSON
+    # 3. Redirect warnings.warn() to the logging system
+    # This causes all warnings.warn() calls to go through the logging pipeline
+    # and appear in the same output (STDOUT/file) in JSON format.
+    # propagate=False prevents duplicate output (once from py.warnings handlers,
+    # once from propagation to root logger which has the same handlers).
     logging.captureWarnings(True)
     warnings_logger = logging.getLogger('py.warnings')
+    warnings_logger.propagate = False
     warnings_logger.addHandler(stdout_handler)
     if log_file:
         warnings_logger.addHandler(file_handler)
