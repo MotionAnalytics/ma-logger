@@ -71,12 +71,17 @@ class OTelContextFilter(logging.Filter):
         return True
 
 # --- רכיב 3: פונקציית ה-Setup המרכזית ---
-def setup_logging():
-    """מגדירה את ה-Root Logger וקובעת לאן יוזרמו הלוגים"""
+def setup_logging(log_to_file):
+    """מגדירה את ה-Root Logger וקובעת לאן יוזרמו הלוגים
+
+    Args:
+        log_to_file (str | None): נתיב לקובץ לוג. אם None, לוגים רק ל-STDOUT.
+            הקוד הקורא צריך לקרוא את זה ממשתנה סביבה אם נדרש.
+    """
     root_logger = logging.getLogger()
     if root_logger.hasHandlers():
         return
-        
+
     root_logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
     formatter = OTelJsonFormatter()
     ctx_filter = OTelContextFilter()
@@ -88,10 +93,9 @@ def setup_logging():
     stdout_handler.addFilter(ctx_filter)
     root_logger.addHandler(stdout_handler)
 
-    # 2. כתיבה לקובץ - מופעל רק אם קיים משתנה סביבה LOG_FILE_PATH
-    log_file = os.getenv("LOG_FILE_PATH")
-    if log_file:
-        file_handler = logging.FileHandler(log_file)
+    # 2. כתיבה לקובץ - מופעל רק אם הפרמטר log_to_file מוגדר
+    if log_to_file:
+        file_handler = logging.FileHandler(log_to_file)
         file_handler.setFormatter(formatter)
         file_handler.addFilter(ctx_filter)
         root_logger.addHandler(file_handler)
@@ -135,9 +139,12 @@ def my_utility_function():
 ```
 from ma_logger import setup_logging
 import logging
+import os
 
 # 1. אתחול ה-Root Logger (פעם אחת בתחילת התוכנית)
-setup_logging()
+# קריאת נתיב הקובץ ממשתנה סביבה אם נדרש
+log_file_path = os.getenv("LOG_FILE_PATH")
+setup_logging(log_to_file=log_file_path)
 
 # 2. שימוש רגיל
 logger = logging.getLogger(__name__)
@@ -148,9 +155,11 @@ logger.info("Application Started")
 
 השליטה לאן הלוגים הולכים מתבצעת דרך **משתני סביבה**, ללא שינוי קוד:
 
-* **ריצה בקונטיינר/Kestra:** לא מגדירים כלום (דיפולט ל-STDOUT).  
-* **פיתוח מקומי לקובץ:** הגדר `LOG_FILE_PATH=./dev.log`.  
+* **ריצה בקונטיינר/Kestra:** לא מגדירים `LOG_FILE_PATH` (דיפולט ל-STDOUT בלבד).
+* **פיתוח מקומי לקובץ:** הגדר `LOG_FILE_PATH=./dev.log` - הקוד שלך יקרא את זה ויעביר ל-`setup_logging()`.
 * **שינוי רמת פירוט:** הגדר `LOG_LEVEL=DEBUG`.
+
+**הערה חשובה:** הספרייה `ma-logger` עצמה לא קוראת ישירות ממשתנה הסביבה `LOG_FILE_PATH`. הקוד המשתמש בספרייה (האפליקציה שלך) צריך לקרוא את המשתנה ולהעביר אותו כפרמטר ל-`setup_logging(log_to_file=...)`. זה שומר על הפרדת אחריות (Separation of Concerns) - הספרייה לא תלויה בשמות ספציפיים של משתני סביבה.
 
 ## **5\. המעבר ל-OpenTelemetry בעתיד**
 

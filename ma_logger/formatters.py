@@ -119,8 +119,16 @@ class OTelJsonFormatter(logging.Formatter):
                 if key not in ("trace_id", "execution_id", "task_id"):
                     log_record[key] = value
 
-        # Add custom attributes
-        if hasattr(record, "data"):
+        # Add trace-specific fields (from @trace decorator)
+        if hasattr(record, "trace_data"):
+            td = record.trace_data
+            log_record["type"] = "trace"
+            log_record["trace.function"] = td["function"]
+            log_record["trace.result"] = td["result"]
+            log_record["trace.duration"] = td["duration"]
+            log_record["attributes"] = {"params": td.get("params", {})}
+        # Add custom attributes (for non-trace logs)
+        elif hasattr(record, "data"):
             log_record["attributes"] = record.data
 
         # Add exception stack trace
