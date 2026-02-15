@@ -120,7 +120,7 @@ class TestSetupLoggingStdout:
         logger.debug("should not appear")
         logger.info("should appear")
         captured = capsys.readouterr().out.strip()
-        lines = [l for l in captured.split("\n") if l]
+        lines = [line for line in captured.split("\n") if line]
         assert len(lines) == 1
         assert json.loads(lines[0])["message"] == "should appear"
 
@@ -213,8 +213,8 @@ class TestSetupLoggingWarnings:
         warnings.warn("this is a warning")
         captured = capsys.readouterr().out.strip()
         # warnings.warn may produce output - find the warning line
-        lines = [l for l in captured.split("\n") if l.strip()]
-        warning_lines = [l for l in lines if "this is a warning" in l]
+        lines = [line for line in captured.split("\n") if line.strip()]
+        warning_lines = [line for line in lines if "this is a warning" in line]
         assert len(warning_lines) >= 1
         parsed = json.loads(warning_lines[0])
         assert parsed["level"] == "WARNING"
@@ -231,8 +231,8 @@ class TestSetupLoggingWarnings:
                 h.flush()
             with open(log_path, "r") as f:
                 content = f.read().strip()
-            lines = [l for l in content.split("\n") if l.strip()]
-            warning_lines = [l for l in lines if "file warning" in l]
+            lines = [line for line in content.split("\n") if line.strip()]
+            warning_lines = [line for line in lines if "file warning" in line]
             assert len(warning_lines) >= 1
             parsed = json.loads(warning_lines[0])
             assert parsed["level"] == "WARNING"

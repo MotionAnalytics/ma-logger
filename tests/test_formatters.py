@@ -5,7 +5,6 @@ Tests the formatter in isolation - no setup_logging, no filter, no decorator.
 
 import json
 import logging
-import os
 import pytest
 
 from ma_logger.formatters import OTelJsonFormatter
