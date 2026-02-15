@@ -4,13 +4,13 @@
 # Skip in emergency: git commit -m "msg" --no-verify
 
 repos:
-  # Code formatter - דטרמיניסטי, בטוח, תמיד מתקן
+  # Code formatter - deterministic, safe, always fixes
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
 
-  # Linter - רק בודק, לא משנה כלום
+  # Linter - only checks, does not modify anything
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4
     hooks:
