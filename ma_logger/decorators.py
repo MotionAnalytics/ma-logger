@@ -119,8 +119,8 @@ def trace(_func=None, *, ignore_params=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            logger = logging.getLogger(func.__module__)
             real_module = _resolve_module_name(func)
+            logger = logging.getLogger(real_module)
             qualified_name = f"{real_module}.{func.__qualname__}"
             params = _collect_params(func, args, kwargs, ignore_params)
             start = time.perf_counter()
