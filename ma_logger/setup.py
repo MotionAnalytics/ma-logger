@@ -11,7 +11,7 @@ from .formatters import OTelJsonFormatter
 from .filters import OTelContextFilter
 
 
-def setup_logging(log_to_file = None, formatter=None, context_filter=None):
+def setup_logging(log_to_file=None, formatter=None, context_filter=None):
     """
     Configures the root logger with JSON formatting and context injection.
 
