@@ -46,44 +46,43 @@ class TestSetupLoggingBasic:
     """Test basic setup behavior."""
 
     def test_setup_adds_handlers(self):
-        setup_logging()
+        setup_logging(log_to_file=None)
         root = logging.getLogger()
         assert len(root.handlers) > 0
 
     def test_setup_is_idempotent(self):
-        setup_logging()
+        setup_logging(log_to_file=None)
         handler_count = len(logging.getLogger().handlers)
-        setup_logging()  # Second call should be no-op
+        setup_logging(log_to_file=None)  # Second call should be no-op
         assert len(logging.getLogger().handlers) == handler_count
 
     def test_default_log_level_is_info(self, monkeypatch):
         monkeypatch.delenv("LOG_LEVEL", raising=False)
-        setup_logging()
+        setup_logging(log_to_file=None)
         assert logging.getLogger().level == logging.INFO
 
     def test_custom_log_level_from_env(self, monkeypatch):
         monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-        setup_logging()
+        setup_logging(log_to_file=None)
         assert logging.getLogger().level == logging.DEBUG
 
     def test_log_level_case_insensitive(self, monkeypatch):
         monkeypatch.setenv("LOG_LEVEL", "warning")
-        setup_logging()
+        setup_logging(log_to_file=None)
         assert logging.getLogger().level == logging.WARNING
 
     def test_invalid_log_level_falls_back_to_info(self, monkeypatch):
         monkeypatch.setenv("LOG_LEVEL", "INVALID_LEVEL")
         with pytest.warns(UserWarning, match="Invalid LOG_LEVEL"):
-            setup_logging()
+            setup_logging(log_to_file=None)
         assert logging.getLogger().level == logging.INFO
 
 
 class TestSetupLoggingStdout:
     """Test logging to stdout (default behavior)."""
 
-    def test_log_to_stdout_json(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_log_to_stdout_json(self, capsys):
+        setup_logging(log_to_file=None)
         logger = logging.getLogger("test.stdout")
         logger.info("hello stdout")
         captured = capsys.readouterr()
@@ -92,9 +91,8 @@ class TestSetupLoggingStdout:
         assert parsed["level"] == "INFO"
 
     def test_stdout_contains_otel_context(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
         monkeypatch.setenv("TRACING_ID", "trace-123")
-        setup_logging()
+        setup_logging(log_to_file=None)
         logger = logging.getLogger("test.ctx")
         logger.info("with context")
         parsed = json.loads(capsys.readouterr().out.strip())
@@ -103,9 +101,8 @@ class TestSetupLoggingStdout:
         assert parsed["trace_id"] == "trace-123"
 
     def test_stdout_multiple_log_levels(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
         monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-        setup_logging()
+        setup_logging(log_to_file=None)
         logger = logging.getLogger("test.levels")
         logger.debug("debug msg")
         logger.info("info msg")
@@ -117,9 +114,8 @@ class TestSetupLoggingStdout:
         assert json.loads(lines[2])["level"] == "WARNING"
 
     def test_debug_not_shown_at_info_level(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
         monkeypatch.delenv("LOG_LEVEL", raising=False)
-        setup_logging()
+        setup_logging(log_to_file=None)
         logger = logging.getLogger("test.filter_level")
         logger.debug("should not appear")
         logger.info("should appear")
@@ -130,14 +126,13 @@ class TestSetupLoggingStdout:
 
 
 class TestSetupLoggingFile:
-    """Test logging to file via LOG_FILE_PATH env var."""
+    """Test logging to file via log_to_file parameter."""
 
-    def test_log_to_file_when_env_set(self, monkeypatch):
+    def test_log_to_file_when_param_set(self):
         with tempfile.NamedTemporaryFile(mode="r", suffix=".log", delete=False) as f:
             log_path = f.name
         try:
-            monkeypatch.setenv("LOG_FILE_PATH", log_path)
-            setup_logging()
+            setup_logging(log_to_file=log_path)
             logger = logging.getLogger("test.file")
             logger.info("file message")
             # Flush handlers
@@ -152,13 +147,12 @@ class TestSetupLoggingFile:
             _close_and_clear_handlers(logging.getLogger("py.warnings"))
             os.unlink(log_path)
 
-    def test_log_to_file_when_env_set_multiple_lines(self, monkeypatch):
+    def test_log_to_file_when_param_set_multiple_lines(self, monkeypatch):
         with tempfile.NamedTemporaryFile(mode="r", suffix=".log", delete=False) as f:
             log_path = f.name
         try:
-            monkeypatch.setenv("LOG_FILE_PATH", log_path)
             monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-            setup_logging()
+            setup_logging(log_to_file=log_path)
             logger = logging.getLogger("test.multiline")
             logger.debug("debug message")
             logger.info("info message")
@@ -183,19 +177,17 @@ class TestSetupLoggingFile:
             _close_and_clear_handlers(logging.getLogger("py.warnings"))
             os.unlink(log_path)
 
-    def test_no_file_when_env_not_set(self, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_no_file_when_param_is_none(self):
+        setup_logging(log_to_file=None)
         root = logging.getLogger()
         file_handlers = [h for h in root.handlers if isinstance(h, logging.FileHandler)]
         assert len(file_handlers) == 0
 
-    def test_file_and_stdout_both_receive_logs(self, capsys, monkeypatch):
+    def test_file_and_stdout_both_receive_logs(self, capsys):
         with tempfile.NamedTemporaryFile(mode="r", suffix=".log", delete=False) as f:
             log_path = f.name
         try:
-            monkeypatch.setenv("LOG_FILE_PATH", log_path)
-            setup_logging()
+            setup_logging(log_to_file=log_path)
             logger = logging.getLogger("test.both")
             logger.info("dual output")
             for h in logging.getLogger().handlers:
@@ -216,9 +208,8 @@ class TestSetupLoggingFile:
 class TestSetupLoggingWarnings:
     """Test that warnings.warn() is captured by the logging system."""
 
-    def test_warning_captured_to_stdout(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_warning_captured_to_stdout(self, capsys):
+        setup_logging(log_to_file=None)
         warnings.warn("this is a warning")
         captured = capsys.readouterr().out.strip()
         # warnings.warn may produce output - find the warning line
@@ -228,12 +219,11 @@ class TestSetupLoggingWarnings:
         parsed = json.loads(warning_lines[0])
         assert parsed["level"] == "WARNING"
 
-    def test_warning_captured_to_file(self, monkeypatch):
+    def test_warning_captured_to_file(self):
         with tempfile.NamedTemporaryFile(mode="r", suffix=".log", delete=False) as f:
             log_path = f.name
         try:
-            monkeypatch.setenv("LOG_FILE_PATH", log_path)
-            setup_logging()
+            setup_logging(log_to_file=log_path)
             warnings.warn("file warning")
             for h in logging.getLogger().handlers:
                 h.flush()
@@ -255,9 +245,8 @@ class TestSetupLoggingWarnings:
 class TestSetupLoggingExceptionOutput:
     """Test that exceptions are properly formatted in output."""
 
-    def test_exception_in_stdout(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_exception_in_stdout(self, capsys):
+        setup_logging(log_to_file=None)
         logger = logging.getLogger("test.exc")
         try:
             raise RuntimeError("boom")

@@ -1,5 +1,5 @@
 """
-Tests for trace decorator with default setup_logging().
+Tests for trace decorator with default setup_logging(log_to_file=None).
 Tests success/failure scenarios, duration tracking, param capture, stdout and file output.
 """
 
@@ -42,9 +42,8 @@ def reset_logging():
 class TestTraceSuccess:
     """Test decorator on successful function execution."""
 
-    def test_success_log_message(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_success_log_message(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def my_task():
@@ -57,9 +56,8 @@ class TestTraceSuccess:
         assert "my_task" in parsed["message"]
         assert "success" in parsed["message"]
 
-    def test_success_includes_duration(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_success_includes_duration(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def slow_task():
@@ -72,9 +70,8 @@ class TestTraceSuccess:
         assert "duration" in parsed["attributes"]
         assert parsed["attributes"]["duration"] >= 0.04
 
-    def test_return_value_preserved(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_return_value_preserved(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def returns_dict():
@@ -90,9 +87,8 @@ class TestTraceSuccess:
 
         assert original_name.__name__ == "original_name"
 
-    def test_function_with_args(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_function_with_args(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def add(a, b):
@@ -104,9 +100,8 @@ class TestTraceSuccess:
         assert "add" in parsed["message"]
         assert "success" in parsed["message"]
 
-    def test_function_with_kwargs(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_function_with_kwargs(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def greet(name="world"):
@@ -119,9 +114,8 @@ class TestTraceSuccess:
 class TestTraceFailure:
     """Test decorator on function failure."""
 
-    def test_failure_log_message(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_failure_log_message(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def failing_task():
@@ -134,9 +128,8 @@ class TestTraceFailure:
         assert "failing_task" in parsed["message"]
         assert "failed" in parsed["message"]
 
-    def test_failure_includes_stacktrace(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_failure_includes_stacktrace(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def error_task():
@@ -149,9 +142,8 @@ class TestTraceFailure:
         assert "RuntimeError" in parsed["exception.stacktrace"]
         assert "runtime error" in parsed["exception.stacktrace"]
 
-    def test_exception_is_reraised(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_exception_is_reraised(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def raises():
@@ -160,9 +152,8 @@ class TestTraceFailure:
         with pytest.raises(TypeError, match="type error"):
             raises()
 
-    def test_failure_includes_duration_and_params(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_failure_includes_duration_and_params(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def fail_with_args(x, y):
@@ -176,11 +167,10 @@ class TestTraceFailure:
 
 
 class TestTraceWithFile:
-    """Test decorator output to file (with and without LOG_FILE_PATH)."""
+    """Test decorator output to file (with and without log_to_file parameter)."""
 
-    def test_no_file_output_without_env(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_no_file_output_without_env(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def simple():
@@ -194,12 +184,11 @@ class TestTraceWithFile:
         parsed = json.loads(capsys.readouterr().out.strip())
         assert "simple" in parsed["message"]
 
-    def test_success_logged_to_file(self, monkeypatch):
+    def test_success_logged_to_file(self):
         with tempfile.NamedTemporaryFile(mode="r", suffix=".log", delete=False) as f:
             log_path = f.name
         try:
-            monkeypatch.setenv("LOG_FILE_PATH", log_path)
-            setup_logging()
+            setup_logging(log_to_file=log_path)
 
             @trace
             def file_task():
@@ -220,12 +209,11 @@ class TestTraceWithFile:
             _close_and_clear_handlers(logging.getLogger("py.warnings"))
             os.unlink(log_path)
 
-    def test_failure_logged_to_file(self, monkeypatch):
+    def test_failure_logged_to_file(self):
         with tempfile.NamedTemporaryFile(mode="r", suffix=".log", delete=False) as f:
             log_path = f.name
         try:
-            monkeypatch.setenv("LOG_FILE_PATH", log_path)
-            setup_logging()
+            setup_logging(log_to_file=log_path)
 
             @trace
             def file_fail():
@@ -246,12 +234,11 @@ class TestTraceWithFile:
             _close_and_clear_handlers(logging.getLogger("py.warnings"))
             os.unlink(log_path)
 
-    def test_success_to_both_stdout_and_file(self, capsys, monkeypatch):
+    def test_success_to_both_stdout_and_file(self, capsys):
         with tempfile.NamedTemporaryFile(mode="r", suffix=".log", delete=False) as f:
             log_path = f.name
         try:
-            monkeypatch.setenv("LOG_FILE_PATH", log_path)
-            setup_logging()
+            setup_logging(log_to_file=log_path)
 
             @trace
             def dual_task():
@@ -279,9 +266,8 @@ class TestTraceWithFile:
 class TestTraceParamCapture:
     """Test that @trace captures function parameters."""
 
-    def test_captures_positional_args(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_captures_positional_args(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def add(a, b):
@@ -291,9 +277,8 @@ class TestTraceParamCapture:
         parsed = json.loads(capsys.readouterr().out.strip())
         assert parsed["attributes"]["params"] == {"a": 3, "b": 4}
 
-    def test_captures_kwargs(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_captures_kwargs(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def greet(name="world"):
@@ -303,9 +288,8 @@ class TestTraceParamCapture:
         parsed = json.loads(capsys.readouterr().out.strip())
         assert parsed["attributes"]["params"] == {"name": "python"}
 
-    def test_captures_default_values(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_captures_default_values(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def greet(name="world"):
@@ -315,9 +299,8 @@ class TestTraceParamCapture:
         parsed = json.loads(capsys.readouterr().out.strip())
         assert parsed["attributes"]["params"] == {"name": "world"}
 
-    def test_no_params_function(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_no_params_function(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def noop():
@@ -327,9 +310,8 @@ class TestTraceParamCapture:
         parsed = json.loads(capsys.readouterr().out.strip())
         assert parsed["attributes"]["params"] == {}
 
-    def test_mixed_args_and_kwargs(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_mixed_args_and_kwargs(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def func(a, b, c="default"):
@@ -339,9 +321,8 @@ class TestTraceParamCapture:
         parsed = json.loads(capsys.readouterr().out.strip())
         assert parsed["attributes"]["params"] == {"a": 1, "b": 2, "c": "custom"}
 
-    def test_skips_self_on_method(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_skips_self_on_method(self, capsys):
+        setup_logging(log_to_file=None)
 
         class MyClass:
             @trace
@@ -355,9 +336,8 @@ class TestTraceParamCapture:
         assert "self" not in parsed["attributes"]["params"]
         assert parsed["attributes"]["params"] == {"x": 5}
 
-    def test_skips_cls_on_classmethod(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_skips_cls_on_classmethod(self, capsys):
+        setup_logging(log_to_file=None)
 
         class MyClass:
             @classmethod
@@ -374,9 +354,8 @@ class TestTraceParamCapture:
 class TestTraceIgnoreParams:
     """Test ignore_params to exclude specific parameters from logging."""
 
-    def test_ignore_single_param(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_ignore_single_param(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace(ignore_params=["password"])
         def login(user, password):
@@ -387,9 +366,8 @@ class TestTraceIgnoreParams:
         assert parsed["attributes"]["params"] == {"user": "admin"}
         assert "password" not in parsed["attributes"]["params"]
 
-    def test_ignore_multiple_params(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_ignore_multiple_params(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace(ignore_params=["password", "token"])
         def auth(user, password, token):
@@ -399,9 +377,8 @@ class TestTraceIgnoreParams:
         parsed = json.loads(capsys.readouterr().out.strip())
         assert parsed["attributes"]["params"] == {"user": "admin"}
 
-    def test_ignore_nonexistent_param_is_harmless(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_ignore_nonexistent_param_is_harmless(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace(ignore_params=["nonexistent"])
         def func(a):
@@ -415,9 +392,8 @@ class TestTraceIgnoreParams:
 class TestTraceNonSerializable:
     """Test that non-JSON-serializable values are handled gracefully."""
 
-    def test_non_serializable_replaced_with_classname(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_non_serializable_replaced_with_classname(self, capsys):
+        setup_logging(log_to_file=None)
 
         class HeavyObject:
             pass
@@ -431,9 +407,8 @@ class TestTraceNonSerializable:
         assert parsed["attributes"]["params"]["data"] == "<HeavyObject>"
         assert parsed["attributes"]["params"]["label"] == "test"
 
-    def test_bytes_replaced(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_bytes_replaced(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def upload(payload, name):
@@ -444,9 +419,8 @@ class TestTraceNonSerializable:
         assert parsed["attributes"]["params"]["payload"] == "<bytes>"
         assert parsed["attributes"]["params"]["name"] == "file.bin"
 
-    def test_serializable_types_pass_through(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_serializable_types_pass_through(self, capsys):
+        setup_logging(log_to_file=None)
 
         @trace
         def func(a, b, c, d, e):
@@ -464,9 +438,8 @@ class TestBackwardCompatAlias:
     def test_monitor_task_is_same_as_trace(self):
         assert monitor_task is trace
 
-    def test_monitor_task_still_works(self, capsys, monkeypatch):
-        monkeypatch.delenv("LOG_FILE_PATH", raising=False)
-        setup_logging()
+    def test_monitor_task_still_works(self, capsys):
+        setup_logging(log_to_file=None)
 
         @monitor_task
         def old_style():

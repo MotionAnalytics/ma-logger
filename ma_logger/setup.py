@@ -11,26 +11,34 @@ from .formatters import OTelJsonFormatter
 from .filters import OTelContextFilter
 
 
-def setup_logging(formatter=None, context_filter=None):
+def setup_logging(log_to_file, formatter=None, context_filter=None):
     """
     Configures the root logger with JSON formatting and context injection.
 
-    Default behavior (zero-config):
-        setup_logging()  # Uses default formatter and filter
+    Basic usage:
+        # STDOUT only (for containers/orchestrators)
+        setup_logging(log_to_file=None)
+
+        # STDOUT + file logging (for local development)
+        log_file_path = os.getenv("LOG_FILE_PATH")
+        setup_logging(log_to_file=log_file_path)
 
     Custom behavior:
         # Custom formatter
         formatter = OTelJsonFormatter(trace_id_field="traceId")
-        setup_logging(formatter=formatter)
+        setup_logging(log_to_file=None, formatter=formatter)
 
         # Custom filter
         filter = OTelContextFilter(additional_context={"env": "prod"})
-        setup_logging(context_filter=filter)
+        setup_logging(log_to_file=None, context_filter=filter)
 
         # Both custom
-        setup_logging(formatter=my_formatter, context_filter=my_filter)
+        setup_logging(log_to_file=None, formatter=my_formatter, context_filter=my_filter)
 
     Args:
+        log_to_file (str | None): File path for logging. If None, logs only to STDOUT.
+            If a string path is provided, logs to both STDOUT and the specified file.
+            The calling code should read this from environment variables if needed.
         formatter (OTelJsonFormatter, optional): Custom formatter instance.
             If None, uses default OTelJsonFormatter().
         context_filter (OTelContextFilter, optional): Custom context filter instance.
@@ -38,12 +46,11 @@ def setup_logging(formatter=None, context_filter=None):
 
     Configuration via environment variables:
         - LOG_LEVEL: Logging level (default: INFO)
-        - LOG_FILE_PATH: Optional file path for logging (in addition to STDOUT)
         - SERVICE_NAME: Service name for identification (default: unknown-service)
 
     Behavior:
         - Always logs to STDOUT (for containers/orchestrators)
-        - Optionally logs to file if LOG_FILE_PATH is set
+        - Optionally logs to file if log_to_file parameter is provided
         - Captures warnings.warn() messages and routes them through logging
         - Idempotent: safe to call multiple times (only configures once)
     """
@@ -74,10 +81,10 @@ def setup_logging(formatter=None, context_filter=None):
     stdout_handler.addFilter(context_filter)
     root_logger.addHandler(stdout_handler)
 
-    # 2. Write to file - only if LOG_FILE_PATH env var is set
-    log_file = os.getenv("LOG_FILE_PATH")
-    if log_file:
-        file_handler = logging.FileHandler(log_file)
+    # 2. Write to file - only if log_to_file parameter is provided
+    file_handler = None
+    if log_to_file:
+        file_handler = logging.FileHandler(log_to_file)
         file_handler.setFormatter(formatter)
         file_handler.addFilter(context_filter)
         root_logger.addHandler(file_handler)
@@ -91,7 +98,7 @@ def setup_logging(formatter=None, context_filter=None):
     warnings_logger = logging.getLogger("py.warnings")
     warnings_logger.propagate = False
     warnings_logger.addHandler(stdout_handler)
-    if log_file:
+    if file_handler:
         warnings_logger.addHandler(file_handler)
 
     root_logger._ma_logger_configured = True
