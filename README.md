@@ -67,9 +67,12 @@ Call `setup_logging()` **once** at the entry point of your application. It confi
 ```python
 from ma_logger import setup_logging
 import logging
+import os
 
 # Initialize once at application startup
-setup_logging()
+# Read file path from environment variable if needed
+log_file_path = os.getenv("LOG_FILE_PATH")
+setup_logging(log_to_file=log_file_path)
 
 # Use standard logging everywhere
 logger = logging.getLogger(__name__)
@@ -81,7 +84,7 @@ logger.warning("Something looks off", extra={"data": {"detail": "value"}})
 
 1. Sets the root logger level from the `LOG_LEVEL` env var (default: `INFO`).
 2. Attaches a JSON formatter (`OTelJsonFormatter`) and a context filter (`OTelContextFilter`) to STDOUT.
-3. Optionally writes to a file if `LOG_FILE_PATH` is set.
+3. Optionally writes to a file if the `log_to_file` parameter is provided.
 4. Captures `warnings.warn()` messages and routes them through the logging system.
 5. Is idempotent — safe to call multiple times (only configures once).
 
@@ -90,17 +93,19 @@ logger.warning("Something looks off", extra={"data": {"detail": "value"}})
 | Variable | Purpose | Default |
 |---|---|---|
 | `LOG_LEVEL` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
-| `LOG_FILE_PATH` | If set, logs are also written to this file path | *(none — STDOUT only)* |
 | `SERVICE_NAME` | Identifies the service in log output | `unknown-service` |
 | `TRACING_ID` / `CORRELATION_ID` | Populates `trace_id` | `N/A` |
 | `KESTRA_EXECUTION_ID` / `EXECUTION_ID` | Populates `execution_id` | `N/A` |
 | `KESTRA_TASK_ID` / `TASK_ID` | Populates `task_id` | `N/A` |
+
+**Note:** The library no longer reads `LOG_FILE_PATH` directly. If you want to log to a file, read the environment variable in your application code and pass it to `setup_logging(log_to_file=...)` as shown in the example above.
 
 ### Custom configuration
 
 You can pass custom formatter and filter instances for advanced use cases:
 
 ```python
+import os
 from ma_logger import setup_logging, OTelJsonFormatter, OTelContextFilter
 
 formatter = OTelJsonFormatter(
@@ -115,7 +120,8 @@ context_filter = OTelContextFilter(
     fallback_value="unknown",
 )
 
-setup_logging(formatter=formatter, context_filter=context_filter)
+log_file_path = os.getenv("LOG_FILE_PATH")
+setup_logging(log_to_file=log_file_path, formatter=formatter, context_filter=context_filter)
 ```
 
 ### Usage in internal libraries / utils
@@ -128,7 +134,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def my_utility_function():
-    logger.info("Doing work")  # automatically formatted as JSON if setup_logging() was called
+    logger.info("Doing work")  # automatically formatted as JSON if setup_logging(...) was called
 ```
 
 The root logger configuration propagates to all child loggers automatically.
