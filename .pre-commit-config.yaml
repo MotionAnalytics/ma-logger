@@ -1,0 +1,19 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+# Skip in emergency: git commit -m "msg" --no-verify
+
+repos:
+  # Code formatter - דטרמיניסטי, בטוח, תמיד מתקן
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+
+  # Linter - רק בודק, לא משנה כלום
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--no-fix]
+

@@ -21,6 +21,43 @@ pip install git+https://github.com/MotionAnalytics/ma-logger.git
 
 ---
 
+## Development Setup
+
+If you're contributing to this project, follow these steps to set up your local environment:
+
+### 1. Install development dependencies
+
+```bash
+pip install -e ".[dev]"
+```
+
+This installs the package in editable mode along with development tools: `pytest`, `black`, `ruff`, and `pre-commit`.
+
+### 2. Install pre-commit hooks
+
+```bash
+pre-commit install
+```
+
+This sets up automatic code quality checks that run **before every commit**:
+- **Black** — automatic code formatting (fixes issues automatically)
+- **Ruff** — linting and code quality checks (reports issues, does not auto-fix)
+
+Once installed, these checks run automatically on `git commit`. If any issues are found, the commit will be blocked until you fix them.
+
+**To skip checks in an emergency** (not recommended):
+```bash
+git commit -m "message" --no-verify
+```
+
+### 3. Run tests
+
+```bash
+pytest
+```
+
+---
+
 ## 1. Logger — `setup_logging()`
 
 Call `setup_logging()` **once** at the entry point of your application. It configures the Python root logger so that **every** log message (including from third-party libraries) is formatted as JSON with tracing context.
