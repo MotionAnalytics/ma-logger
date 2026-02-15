@@ -4,43 +4,12 @@ Decorators for tracing and instrumentation (OTel-ready).
 
 import logging
 import functools
-import inspect
-import json
 import time
+
+from .utils import resolve_module_name, collect_params
 
 # Parameters automatically excluded from trace logging
 _AUTO_SKIP_PARAMS = {"self", "cls"}
-
-
-def _safe_serialize_value(value):
-    """Return a JSON-serializable representation of *value*.
-
-    Primitives and simple containers (list, dict) that survive
-    ``json.dumps`` are returned as-is.  Anything else is replaced
-    with a short placeholder so the log line never explodes.
-    """
-    try:
-        json.dumps(value)
-        return value
-    except (TypeError, ValueError, OverflowError):
-        return f"<{type(value).__name__}>"
-
-
-def _collect_params(func, args, kwargs, ignore_params=None):
-    """Build a serializable dict of the function's bound arguments."""
-    ignore = _AUTO_SKIP_PARAMS | set(ignore_params or [])
-    try:
-        sig = inspect.signature(func)
-        bound = sig.bind(*args, **kwargs)
-        bound.apply_defaults()
-        return {
-            name: _safe_serialize_value(val)
-            for name, val in bound.arguments.items()
-            if name not in ignore
-        }
-    except (TypeError, ValueError):
-        # Fallback – e.g. built-in functions without inspectable sig
-        return {}
 
 
 def trace(_func=None, *, ignore_params=None):
@@ -71,22 +40,38 @@ def trace(_func=None, *, ignore_params=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            logger = logging.getLogger(func.__module__)
-            params = _collect_params(func, args, kwargs, ignore_params)
+            real_module = resolve_module_name(func)
+            logger = logging.getLogger(real_module)
+            qualified_name = f"{real_module}.{func.__qualname__}"
+            params = collect_params(func, args, kwargs, ignore_params, _AUTO_SKIP_PARAMS)
             start = time.perf_counter()
             try:
                 result = func(*args, **kwargs)
                 duration = time.perf_counter() - start
                 logger.info(
-                    f"Task {func.__name__} success",
-                    extra={"data": {"duration": duration, "params": params}},
+                    f"trace complete: {qualified_name} [success]",
+                    extra={
+                        "trace_data": {
+                            "function": qualified_name,
+                            "result": "success",
+                            "duration": duration,
+                            "params": params,
+                        }
+                    },
                 )
                 return result
             except Exception:
                 duration = time.perf_counter() - start
                 logger.error(
-                    f"Task {func.__name__} failed",
-                    extra={"data": {"duration": duration, "params": params}},
+                    f"trace complete: {qualified_name} [error]",
+                    extra={
+                        "trace_data": {
+                            "function": qualified_name,
+                            "result": "error",
+                            "duration": duration,
+                            "params": params,
+                        }
+                    },
                     exc_info=True,
                 )
                 raise

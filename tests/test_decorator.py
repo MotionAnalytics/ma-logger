@@ -53,8 +53,10 @@ class TestTraceSuccess:
         assert result == "done"
         parsed = json.loads(capsys.readouterr().out.strip())
         assert parsed["level"] == "INFO"
+        assert parsed["type"] == "trace"
         assert "my_task" in parsed["message"]
-        assert "success" in parsed["message"]
+        assert "my_task" in parsed["trace.function"]
+        assert parsed["trace.result"] == "success"
 
     def test_success_includes_duration(self, capsys):
         setup_logging(log_to_file=None)
@@ -66,9 +68,8 @@ class TestTraceSuccess:
 
         slow_task()
         parsed = json.loads(capsys.readouterr().out.strip())
-        assert "attributes" in parsed
-        assert "duration" in parsed["attributes"]
-        assert parsed["attributes"]["duration"] >= 0.04
+        assert "trace.duration" in parsed
+        assert parsed["trace.duration"] >= 0.04
 
     def test_return_value_preserved(self, capsys):
         setup_logging(log_to_file=None)
@@ -98,7 +99,7 @@ class TestTraceSuccess:
         assert result == 7
         parsed = json.loads(capsys.readouterr().out.strip())
         assert "add" in parsed["message"]
-        assert "success" in parsed["message"]
+        assert parsed["trace.result"] == "success"
 
     def test_function_with_kwargs(self, capsys):
         setup_logging(log_to_file=None)
@@ -125,8 +126,9 @@ class TestTraceFailure:
             failing_task()
         parsed = json.loads(capsys.readouterr().out.strip())
         assert parsed["level"] == "ERROR"
+        assert parsed["type"] == "trace"
         assert "failing_task" in parsed["message"]
-        assert "failed" in parsed["message"]
+        assert parsed["trace.result"] == "error"
 
     def test_failure_includes_stacktrace(self, capsys):
         setup_logging(log_to_file=None)
@@ -162,7 +164,7 @@ class TestTraceFailure:
         with pytest.raises(ValueError):
             fail_with_args(1, 2)
         parsed = json.loads(capsys.readouterr().out.strip())
-        assert "duration" in parsed["attributes"]
+        assert "trace.duration" in parsed
         assert parsed["attributes"]["params"] == {"x": 1, "y": 2}
 
 
@@ -201,9 +203,8 @@ class TestTraceWithFile:
                 parsed = json.loads(f.read().strip())
             assert parsed["level"] == "INFO"
             assert "file_task" in parsed["message"]
-            assert "success" in parsed["message"]
-            assert "attributes" in parsed
-            assert "duration" in parsed["attributes"]
+            assert parsed["trace.result"] == "success"
+            assert "trace.duration" in parsed
         finally:
             _close_and_clear_handlers(logging.getLogger())
             _close_and_clear_handlers(logging.getLogger("py.warnings"))
@@ -249,11 +250,13 @@ class TestTraceWithFile:
                 h.flush()
             # Check stdout
             stdout_parsed = json.loads(capsys.readouterr().out.strip())
-            assert stdout_parsed["message"] == "Task dual_task success"
+            assert "dual_task" in stdout_parsed["message"]
+            assert stdout_parsed["trace.result"] == "success"
             # Check file
             with open(log_path, "r") as f:
                 file_parsed = json.loads(f.read().strip())
-            assert file_parsed["message"] == "Task dual_task success"
+            assert "dual_task" in file_parsed["message"]
+            assert file_parsed["trace.result"] == "success"
             # Both should have same content
             assert stdout_parsed["level"] == file_parsed["level"]
             assert stdout_parsed["message"] == file_parsed["message"]
@@ -449,4 +452,4 @@ class TestBackwardCompatAlias:
         assert result == "ok"
         parsed = json.loads(capsys.readouterr().out.strip())
         assert "old_style" in parsed["message"]
-        assert "success" in parsed["message"]
+        assert parsed["trace.result"] == "success"

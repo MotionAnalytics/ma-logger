@@ -143,7 +143,7 @@ The root logger configuration propagates to all child loggers automatically.
 
 ## 2. Tracer — `@trace` decorator
 
-The `@trace` decorator logs the start, success, or failure of a function call, including its parameters and execution duration.
+The `@trace` decorator logs the success or failure of a function call, including its fully-qualified name, parameters, and execution duration. Each trace log line includes a `"type": "trace"` field for easy filtering.
 
 ### Basic usage
 
@@ -159,15 +159,46 @@ def process_data(file_path, batch_size=100):
 On success, this logs:
 ```json
 {
-  "message": "Task process_data success",
+  "message": "trace complete: mypackage.pipeline.process_data [success]",
+  "type": "trace",
+  "trace.function": "mypackage.pipeline.process_data",
+  "trace.result": "success",
+  "trace.duration": 1.234,
   "attributes": {
-    "duration": 1.234,
     "params": {"file_path": "/data/input.csv", "batch_size": 100}
   }
 }
 ```
 
-On failure, it logs the error with a full stack trace and **re-raises the exception** (never suppresses it).
+On failure:
+```json
+{
+  "message": "trace complete: mypackage.pipeline.process_data [error]",
+  "type": "trace",
+  "trace.function": "mypackage.pipeline.process_data",
+  "trace.result": "error",
+  "trace.duration": 0.003,
+  "attributes": {
+    "params": {"file_path": "/data/input.csv", "batch_size": 100}
+  },
+  "exception.stacktrace": "Traceback ..."
+}
+```
+
+The exception is always **re-raised** (never suppressed).
+
+### Filtering trace logs
+
+```bash
+# All traces
+jq 'select(.type == "trace")'
+
+# Only failures
+jq 'select(.type == "trace" and .["trace.result"] == "error")'
+
+# Specific function
+jq 'select(.["trace.function"] | contains("process_data"))'
+```
 
 ### Ignoring sensitive parameters
 
@@ -183,6 +214,7 @@ Parameters listed in `ignore_params` are excluded from the log output. `self` an
 
 ### Notes
 
+- `trace.function` contains the fully-qualified function name (`package.module.function`), resolved automatically even when running as `__main__`.
 - Non-JSON-serializable parameter values are replaced with `<ClassName>` (e.g. `<DataFrame>`).
 - The decorator works with or without parentheses: `@trace` and `@trace()` are both valid.
 - `monitor_task` is available as a deprecated alias for `trace`.
